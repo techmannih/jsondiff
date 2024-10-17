@@ -711,16 +711,12 @@ func TestSprintHeaderJSONDiff(t *testing.T) {
 		name            string
 		json1           map[string]string
 		json2           map[string]string
+		disableColor    bool // New field to specify if color should be disabled
 		expectedStringA []string
 		expectedStringB []string
 	}{
 		{
-			expectedStringA: []string{
-				"e352032582e1088bbf398331a0ed779a9dbb7d74c29bb77ee4aec8eb08a96891",
-			},
-			expectedStringB: []string{
-				"f772411f009a4fb5295e9007da24abb9e13ef81e5c506bb8429ae02f4dbbe2d0",
-			},
+			name: "Changing the header",
 			json1: map[string]string{
 				"Etag": "W/\"1c0-4VkjzPwyKEH0Xy9lGO28f/cyPk4\"",
 				"Vary": "",
@@ -729,31 +725,29 @@ func TestSprintHeaderJSONDiff(t *testing.T) {
 				"Etag": "W/\"1c0-8j/k9MOCbWGtKgVesjFGmY6dEAs\"",
 				"Vary": "Origin",
 			},
-			name: "Changing the header",
+			disableColor:    true, // Test with color disabled
+			expectedStringA: []string{"e352032582e1088bbf398331a0ed779a9dbb7d74c29bb77ee4aec8eb08a96891"},
+			expectedStringB: []string{"f772411f009a4fb5295e9007da24abb9e13ef81e5c506bb8429ae02f4dbbe2d0"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp := CompareHeaders(tt.json1, (tt.json2))
-			result := expectActualTable(resp.Expected, resp.Actual, "", false)
+			resp := CompareHeaders(tt.json1, tt.json2, tt.disableColor)
 			escapedA := escapedANSIString(resp.Expected)
 			escapedB := escapedANSIString(resp.Actual)
-			if !containsSubstring(tt.expectedStringA, escapedA) {
-				println(result)
-				println(tt.name)
-				fmt.Printf("\"%s %s\",\n", escapedA, "A")
-				// t.Fail() // Mark the test as failed
-			} else if !containsSubstring(tt.expectedStringB, escapedB) {
-				println(result)
-				println(tt.name)
-				fmt.Printf("\"%s %s \",\n", escapedB, "B")
-				// t.Fail() // Mark the test as failed
-			}
 
+			if !containsSubstring(tt.expectedStringA, escapedA) {
+				t.Errorf("Output A does not match expected value. Expected: %v, Got: %v", tt.expectedStringA, escapedA)
+			}
+			if !containsSubstring(tt.expectedStringB, escapedB) {
+				t.Errorf("Output B does not match expected value. Expected: %v, Got: %v", tt.expectedStringB, escapedB)
+			}
 		})
+
 	}
 }
+
 func escapedANSIString(s string) string {
 	s = removeANSIColorCodes(s)
 	s = strings.ReplaceAll(s, " ", "␣")
