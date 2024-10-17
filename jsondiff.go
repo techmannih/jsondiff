@@ -58,19 +58,20 @@ func CompareJSON(expectedJSON []byte, actualJSON []byte, noise map[string][]stri
 // expectedJSON: The JSON string containing the expected values.
 // actualJSON: The JSON string containing the actual values.
 // Returns a Diff struct containing the colorized differences for the expected and actual JSON responses.
-func Compare(expectedJSON, actualJSON string) Diff {
-	// Calculate the ranges for differences between the expected and actual JSON strings.
+func Compare(expectedJSON, actualJSON string, disableColor bool) Diff {
+	color.NoColor = disableColor
+
 	offsetExpected, offsetActual, _ := diffArrayRange(expectedJSON, actualJSON)
 
-	// Define colors for highlighting differences.
-	highlightExpected := color.FgHiRed
-	highlightActual := color.FgHiGreen
+	var highlightExpected, highlightActual color.Attribute
+	if !disableColor {
+		highlightExpected = color.FgHiRed
+		highlightActual = color.FgHiGreen
+	}
 
-	// Colorize the differences in the expected and actual JSON strings.
 	colorizedExpected := breakSliceWithColor(expectedJSON, &highlightExpected, offsetExpected)
 	colorizedActual := breakSliceWithColor(actualJSON, &highlightActual, offsetActual)
 
-	// Return the colorized differences in a Diff struct.
 	return Diff{
 		Expected: colorizedExpected,
 		Actual:   colorizedActual,
@@ -725,29 +726,29 @@ func compareAndColorizeMaps(a, b map[string]interface{}, indent string, red, gre
 // expect: The map containing the expected header values.
 // actual: The map containing the actual header values.
 // Returns a ColorizedResponse containing the colorized differences for the expected and actual headers.
-func CompareHeaders(expectedHeaders, actualHeaders map[string]string) Diff {
-	var expectAll, actualAll strings.Builder // Builders for the resulting strings.
+func CompareHeaders(expectedHeaders, actualHeaders map[string]string, disableColor bool) Diff {
+	color.NoColor = disableColor
 
-	// Iterate over each key-value pair in the expected map.
+	var expectAll, actualAll strings.Builder
+
 	for key, expValue := range expectedHeaders {
-		actValue := actualHeaders[key] // Get the corresponding value from the actual map.
+		actValue := actualHeaders[key]
 
-		// Calculate the offsets of the differences between the expected and actual values.
 		offsetsStr1, offsetsStr2, _ := diffArrayRange(string(expValue), string(actValue))
 
-		// Define colors for highlighting differences.
-		cE, cA := color.FgHiRed, color.FgHiGreen
+		var cE, cA color.Attribute
+		if !disableColor {
+			cE = color.FgHiRed
+			cA = color.FgHiGreen
+		}
 
-		// Colorize the differences in the expected and actual values.
 		expectDiff := key + ": " + breakSliceWithColor(string(expValue), &cE, offsetsStr1)
 		actualDiff := key + ": " + breakSliceWithColor(string(actValue), &cA, offsetsStr2)
 
-		// Add the colorized differences to the builders.
 		expectAll.WriteString(breakLines(expectDiff) + "\n")
 		actualAll.WriteString(breakLines(actualDiff) + "\n")
 	}
 
-	// Return the resulting strings.
 	return Diff{Expected: expectAll.String(), Actual: actualAll.String()}
 }
 
